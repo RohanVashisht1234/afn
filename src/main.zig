@@ -9,26 +9,20 @@ inline fn check_boundaries(x1: f32, x2: f32, z1: f32, z2: f32, player_pos_x: f32
 }
 
 const Bullet = struct {
-    x: i32,
-    y: i32,
-    z: i32,
+    position: rl.Vector3,
+    direction: rl.Vector3,
+    active: bool,
 };
 
-const bullets = struct {
-    bullet_list: [5]Bullet,
-    bullet_count_and_index: u8 = 0,
-    bullet: Bullet,
-    fn add_bullet() void {}
-};
 pub fn main() void {
-    // Initialization
-    //--------------------------------------------------------------------------------------
+    var bullets: [50]Bullet = undefined;
+    var bulletIndex: usize = 0;
     const screenWidth = 1920;
     const screenHeight = 1080;
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - 3d camera first person");
     rl.initAudioDevice();
-    defer rl.closeWindow(); // Close window and OpenGL context
+    defer rl.closeWindow();
 
     var camera = rl.Camera3D{
         .position = rl.Vector3.init(0, 1.7, 0),
@@ -38,46 +32,38 @@ pub fn main() void {
         .projection = rl.CameraProjection.camera_perspective,
     };
 
-    rl.disableCursor(); // Limit cursor to relative movement inside the window
-    rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
-    // Main game loop
-    // const road = rl.loadModel("./assets/road.glb");
-    // const pistol = rl.loadModel("./assets/ok.glb");
+    rl.disableCursor();
+    rl.setTargetFPS(60);
     const building = rl.loadModel("./assets/building.glb");
     var old_pos = camera.position;
     const walk = rl.loadMusicStream("./assets/walk.mp3");
     const normal = rl.loadMusicStream("./assets/normal.mp3");
     const shoot = rl.loadMusicStream("./assets/shoot.mp3");
-    // const gun = rl.loadModel("./assets/gun.glb");
     rl.playMusicStream(normal);
     
-    while (!rl.windowShouldClose()) { // Detect window close button or ESC key
-        // Update
-        //----------------------------------------------------------------------------------
+    while (!rl.windowShouldClose()) {
         camera.update(rl.CameraMode.camera_first_person);
-        //----------------------------------------------------------------------------------
-
-        // Draw
-        //----------------------------------------------------------------------------------
         rl.beginDrawing();
         defer rl.endDrawing();
-        //rl.Color.init(188, 211, 247, 255)
         rl.clearBackground(rl.Color.sky_blue);
 
         {
             camera.begin();
-            defer camera.end();
-            // rl.drawModel(pistol, rl.Vector3.init(camera.position.x, camera.position.y-0.014, camera.position.z+0.01), 0.01, rl.Color.dark_gray);
-            // rl.drawCube(rl.Vector3.init(0, 0, 0), 100000, 0.5, 100000, rl.Color.dark_brown);
-            // for (0..100) |i| {
-            //     rl.drawModel(
-            //         road,
-            //         rl.Vector3.init(0.0, 1.0, @as(f32, @floatFromInt(i)) * 31),
-            //         0.05,
-            //         rl.Color.gray,
-            //     );
-            // }
+            defer camera.end(); 
+            for (&bullets) |*bul| {
+            if (bul.active) {
+                bul.position = rl.Vector3.add(bul.position, rl.Vector3.scale(bul.direction, 4)); // Move forward
+                // Deactivate bullets that go out of range
+                if (rl.Vector3.length(bul.position) > 100.0) {
+                    bul.active = false;
+                }
+            }
+        }
+            for (&bullets) |bul| {
+                if (bul.active) {
+                    rl.drawCylinder(bul.position, 0.1, 0.1,0.1, 100, rl.Color.gold) ;// Draw the bullet
+                }
+            }
             if (rl.isKeyPressed(rl.KeyboardKey.key_w)) {
                 rl.playMusicStream(walk);
             }
@@ -86,7 +72,13 @@ pub fn main() void {
             }
             if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
                 rl.playMusicStream(shoot);
-            }
+            var currentBullet = &bullets[bulletIndex];
+            currentBullet.position = camera.position;
+            const forward = rl.Vector3.subtract(camera.target, camera.position);
+            currentBullet.direction = rl.Vector3.normalize(forward);
+            currentBullet.active = true;
+            bulletIndex = (bulletIndex + 1) % 50; // Cycle through the bullet array
+        }
             if (rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
                 rl.updateMusicStream(shoot);
             }
@@ -114,16 +106,11 @@ pub fn main() void {
             if (camera.position.z < -5.8 and camera.position.z > -15.6 and camera.position.x > 4 and camera.position.x < 14) {
                 camera.position = old_pos;
             }
-            // x: 14.5, z: 8.2,
-            // x: 4.5, z:25.5
             if (check_boundaries(14.5, 4.5, 8.2, 25.5, camera.position.x, camera.position.z) or check_boundaries(-4.5, -14.4, 8.2, 25.3, camera.position.x, camera.position.z) or check_boundaries(16.5, 26.5, -15.9, -5.8, camera.position.x, camera.position.z) or check_boundaries(16.5, 26.5, -17.7, -27.7, camera.position.x, camera.position.z) or check_boundaries(-12.2, -14.0, -12.5, -11.4, camera.position.x, camera.position.z) or check_boundaries(14.5, 4.6, -17.8, -27.7, camera.position.x, camera.position.z) or check_boundaries(-26.6, -16.6, 8.1, 25.3, camera.position.x, camera.position.z) or check_boundaries(16.6, 26.5, 25.3, 15.3, camera.position.x, camera.position.z) or check_boundaries(-18.9, -26.6, -17.7, -8.15, camera.position.x, camera.position.z) or check_boundaries(-6.9, -26.6, -17.7, -27.7, camera.position.x, camera.position.z) or check_boundaries(22.6, 20.7, 13.7, 12.6, camera.position.x, camera.position.z)) {
                 camera.position = old_pos;
             }
             old_pos = camera.position;
-
-            // rl.drawModel(buildings, rl.Vector3.init(40, 1.0, 40.0), 1, rl.Color.gray);
         }
-        //----------------------------------------------------------------------------------
         rl.drawCircle(screenWidth / 2, screenHeight / 2, 2, rl.Color.light_gray);
         rl.drawRectangleRounded(rl.Rectangle.init(screenWidth / 2 - 35, screenHeight / 2, 25, 2), 50, 1, rl.Color.light_gray);
         rl.drawRectangleRounded(rl.Rectangle.init(screenWidth / 2 + 10, screenHeight / 2, 25, 2), 50, 1, rl.Color.light_gray);
