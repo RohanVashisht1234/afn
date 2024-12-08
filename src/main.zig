@@ -27,6 +27,7 @@ pub fn main() void {
     const screenHeight = 1080;
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - 3d camera first person");
+    rl.initAudioDevice();
     defer rl.closeWindow(); // Close window and OpenGL context
 
     var camera = rl.Camera3D{
@@ -46,7 +47,11 @@ pub fn main() void {
     const building = rl.loadModel("./assets/building.glb");
     var old_pos = camera.position;
     const walk = rl.loadMusicStream("./assets/walk.mp3");
+    const normal = rl.loadMusicStream("./assets/normal.mp3");
+    const shoot = rl.loadMusicStream("./assets/shoot.mp3");
     // const gun = rl.loadModel("./assets/gun.glb");
+    rl.playMusicStream(normal);
+    
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
         //----------------------------------------------------------------------------------
@@ -73,10 +78,20 @@ pub fn main() void {
             //         rl.Color.gray,
             //     );
             // }
-            if (rl.isKeyDown(rl.KeyboardKey.key_w)) {
-                rl.updateMusicStream(walk);
+            if (rl.isKeyPressed(rl.KeyboardKey.key_w)) {
                 rl.playMusicStream(walk);
             }
+            if (rl.isKeyDown(rl.KeyboardKey.key_w)) {
+                rl.updateMusicStream(walk);
+            }
+            if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
+                rl.playMusicStream(shoot);
+            }
+            if (rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
+                rl.updateMusicStream(shoot);
+            }
+            rl.updateMusicStream(normal);
+            
             if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {}
             rl.drawModel(
                 building,
