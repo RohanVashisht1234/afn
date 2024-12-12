@@ -7,8 +7,8 @@ const MAX_COLUMNS = 20;
 
 const URL = "https://game-backend-vr99.onrender.com/";
 
-const user_name = "rohan";
-const user_name2 = "paras";
+const user_name = "paras";
+const user_name2 = "rohan";
 
 // This is an easy algorith I thought about to check if player is not hitting a wall/building.
 inline fn check_boundaries(x1: f32, x2: f32, z1: f32, z2: f32, player_pos_x: f32, player_pos_z: f32) bool {
@@ -145,37 +145,42 @@ pub fn main() !void {
 }
 
 pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
-    var charBuffer = std.ArrayListUnmanaged(u8).initCapacity(std.heap.c_allocator, 50) catch @panic("Management issue.");
-    errdefer charBuffer.deinit();
+    // Use ArrayListAlignedUnmanaged for response storage
+    var charBuffer = std.ArrayListAlignedUnmanaged(u8, null).initCapacity(allocator, 1024) catch @panic("Management issue.");
+    defer charBuffer.deinit(allocator_c);
+
     var client = std.http.Client{ .allocator = allocator };
     defer client.deinit();
+
     const fetchOptions = std.http.Client.FetchOptions{
-        .location = std.http.Client.FetchOptions.Location{
-            .url = url,
-        },
+        .location = .{ .url = url },
         .method = .GET,
         .response_storage = .{ .static = &charBuffer },
     };
+
     _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
-    return charBuffer.toOwnedSlice(std.heap.c_allocator) catch @panic("Can't convert buffer to string");
+    return charBuffer.toOwnedSlice(allocator) catch @panic("Can't convert buffer to string");
 }
 
 fn set() !void {
+    const fixed_buf_size = 500;
+    var buf: [fixed_buf_size]u8 = undefined;
+
     while (true) {
-        var buf: [500]u8 = undefined;
         const resultant = try std.fmt.bufPrintZ(&buf, URL ++ "set/" ++ user_name ++ "/?{d}:{d}", .{ user_location[0], user_location[1] });
-        // std.debug.print("{s}", .{resultant});
-        _ = fetchNormal(allocator_c, resultant); // send location
+        _ = fetchNormal(allocator_c, resultant); // Send location
     }
-    return;
 }
 
 fn get() void {
     while (true) {
-        const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // get location
+        const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // Get location
         var iter = std.mem.splitScalar(u8, result, ':');
-        const user_location_x: f32 = std.fmt.parseFloat(f32, iter.next().?) catch 0;
-        const user_location_z: f32 = std.fmt.parseFloat(f32, iter.next().?) catch 0;
-        user2_location = [2]f32{ user_location_x, user_location_z };
+
+        // Parse locations directly
+        user2_location = [2]f32{
+            std.fmt.parseFloat(f32, iter.next().?) catch 0,
+            std.fmt.parseFloat(f32, iter.next().?) catch 0,
+        };
     }
 }
