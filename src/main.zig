@@ -5,7 +5,7 @@ const allocator_c = std.heap.c_allocator;
 
 const MAX_COLUMNS = 20;
 
-const URL = "http://game-backend-vr99.onrender.com/";
+const URL = "https://game-backend-vr99.onrender.com/";
 
 const user_name = "rohan";
 const user_name2 = "paras";
