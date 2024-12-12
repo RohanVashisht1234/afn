@@ -7,8 +7,8 @@ const MAX_COLUMNS = 20;
 
 const URL = "https://game-backend-vr99.onrender.com/";
 
-const user_name = "rohan";
-const user_name2 = "paras";
+const user_name = "paras";
+const user_name2 = "rohan";
 
 // This is an easy algorith I thought about to check if player is not hitting a wall/building.
 inline fn check_boundaries(x1: f32, x2: f32, z1: f32, z2: f32, player_pos_x: f32, player_pos_z: f32) bool {
@@ -57,7 +57,7 @@ pub fn main() !void {
     const t2 = try std.Thread.spawn(.{}, get, .{});
 
     while (!rl.windowShouldClose()) {
-        user_location = [2]f32{ camera.position.x, camera.position.y };
+        user_location = [2]f32{ camera.position.x, camera.position.z };
 
         camera.update(rl.CameraMode.camera_first_person);
         rl.beginDrawing();
