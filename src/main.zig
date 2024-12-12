@@ -21,7 +21,11 @@ const Bullet = struct {
     active: bool,
 };
 
+var user2_location = [2]f32{ 0, 0 };
+var user_location = [2]f32{ 0, 0 };
+
 pub fn main() !void {
+    std.debug.print("OK", .{});
     var bullets: [50]Bullet = undefined;
     var bulletIndex: usize = 0;
     const screenWidth = 720;
@@ -30,6 +34,7 @@ pub fn main() !void {
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - 3d camera first person");
     rl.initAudioDevice();
     defer rl.closeWindow();
+    std.debug.print("\nOK", .{});
 
     var camera = rl.Camera3D{
         .position = rl.Vector3.init(0, 1.7, 0),
@@ -48,18 +53,11 @@ pub fn main() !void {
     const shoot = rl.loadMusicStream("./assets/shoot.mp3");
     rl.playMusicStream(normal);
 
-    var asdf: u32 = 20;
-    var res = [2]f32{ 0, 0 };
+    const t1 = try std.Thread.spawn(.{}, set, .{});
+    const t2 = try std.Thread.spawn(.{},get, .{});
 
-    while (!rl.windowShouldClose()) : (asdf += 1) {
-        if (asdf == 200) {
-            asdf = 0;
-        }
-        const result = [2]f32{ camera.position.x, camera.position.y };
-        if (asdf % 100 == 0) {
-            try set(result);
-            res = get();
-        }
+    while (!rl.windowShouldClose()) {
+        user_location = [2]f32{ camera.position.x, camera.position.y };
 
         camera.update(rl.CameraMode.camera_first_person);
         rl.beginDrawing();
@@ -83,7 +81,7 @@ pub fn main() !void {
                     rl.drawCylinder(bul.position, 0.1, 0.1, 0.1, 100, rl.Color.gold); // Draw the bullet
                 }
             }
-            rl.drawCube(rl.Vector3.init(res[0], 1, res[1]), 1, 1, 1, rl.Color.red);
+            rl.drawCube(rl.Vector3.init(user2_location[0], 1, user2_location[1]), 1, 1, 1, rl.Color.red);
             if (rl.isKeyPressed(rl.KeyboardKey.key_w)) {
                 rl.playMusicStream(walk);
             }
@@ -142,6 +140,8 @@ pub fn main() !void {
         //  rl.drawText(std.fmt.bufPrintZ(&buf, "y : {d}", .{camera.position.y}) catch @panic("message: []const u8"), 20, 40, 20, rl.Color.red);
         //  rl.drawText(std.fmt.bufPrintZ(&buf, "z : {d}", .{camera.position.z}) catch @panic("message: []const u8"), 20, 60, 20, rl.Color.red);
     }
+    t1.join();
+    t2.join();
 }
 
 pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
@@ -160,18 +160,22 @@ pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
     return charBuffer.toOwnedSlice() catch @panic("Can't convert buffer to string");
 }
 
-inline fn set(x: [2]f32) !void {
-    var buf: [500]u8 = undefined;
-    const resultant = try std.fmt.bufPrintZ(&buf, URL ++ "set/" ++ user_name ++ "/?{d}:{d}", .{ x[0], x[1] });
-    // std.debug.print("{s}", .{resultant});
-    _ = fetchNormal(allocator_c, resultant); // send location
+fn set() !void {
+    while (true) {
+        var buf: [500]u8 = undefined;
+        const resultant = try std.fmt.bufPrintZ(&buf, URL ++ "set/" ++ user_name ++ "/?{d}:{d}", .{ user_location[0], user_location[1] });
+        // std.debug.print("{s}", .{resultant});
+        _ = fetchNormal(allocator_c, resultant); // send location
+    }
     return;
 }
 
-inline fn get() [2]f32 {
-    const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // get location
-    var iter = std.mem.splitScalar(u8, result, ':');
-    const user_location_x: f32 = std.fmt.parseFloat(f32, iter.next().?) catch return [2]f32{ 0, 0 };
-    const user_location_z: f32 = std.fmt.parseFloat(f32, iter.next().?) catch return [2]f32{ 0, 0 };
-    return [2]f32{ user_location_x, user_location_z };
+fn get() void {
+    while (true) {
+        const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // get location
+        var iter = std.mem.splitScalar(u8, result, ':');
+        const user_location_x: f32 = std.fmt.parseFloat(f32, iter.next().?) catch 0;
+        const user_location_z: f32 = std.fmt.parseFloat(f32, iter.next().?) catch 0;
+        user2_location = [2]f32{ user_location_x, user_location_z };
+    }
 }
