@@ -145,7 +145,7 @@ pub fn main() !void {
 }
 
 pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
-    var charBuffer = std.ArrayList(u8).init(allocator);
+    var charBuffer = std.ArrayListUnmanaged(u8).initCapacity(std.heap.c_allocator, 50) catch @panic("Management issue.");
     errdefer charBuffer.deinit();
     var client = std.http.Client{ .allocator = allocator };
     defer client.deinit();
@@ -154,10 +154,10 @@ pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
             .url = url,
         },
         .method = .GET,
-        .response_storage = .{ .dynamic = &charBuffer },
+        .response_storage = .{ .static = &charBuffer },
     };
     _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
-    return charBuffer.toOwnedSlice() catch @panic("Can't convert buffer to string");
+    return charBuffer.toOwnedSlice(std.heap.c_allocator) catch @panic("Can't convert buffer to string");
 }
 
 fn set() !void {
