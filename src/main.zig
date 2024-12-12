@@ -1,7 +1,14 @@
 const rl = @import("raylib");
 const std = @import("std");
 
+const allocator_c = std.heap.c_allocator;
+
 const MAX_COLUMNS = 20;
+
+const URL = "https://game-backend-vr99.onrender.com/";
+
+const user_name = "paras";
+const user_name2 = "rohan";
 
 // This is an easy algorith I thought about to check if player is not hitting a wall/building.
 inline fn check_boundaries(x1: f32, x2: f32, z1: f32, z2: f32, player_pos_x: f32, player_pos_z: f32) bool {
@@ -14,11 +21,11 @@ const Bullet = struct {
     active: bool,
 };
 
-pub fn main() void {
+pub fn main() !void {
     var bullets: [50]Bullet = undefined;
     var bulletIndex: usize = 0;
-    const screenWidth = 1920;
-    const screenHeight = 1080;
+    const screenWidth = 720;
+    const screenHeight = 420;
 
     rl.initWindow(screenWidth, screenHeight, "raylib-zig [core] example - 3d camera first person");
     rl.initAudioDevice();
@@ -40,8 +47,20 @@ pub fn main() void {
     const normal = rl.loadMusicStream("./assets/normal.mp3");
     const shoot = rl.loadMusicStream("./assets/shoot.mp3");
     rl.playMusicStream(normal);
-    
-    while (!rl.windowShouldClose()) {
+
+    var asdf: u32 = 20;
+    var res = [2]f32{ 0, 0 };
+
+    while (!rl.windowShouldClose()) : (asdf += 1) {
+        if (asdf == 200) {
+            asdf = 0;
+        }
+        const result = [2]f32{ camera.position.x, camera.position.y };
+        if (asdf % 100 == 0) {
+            try set(result);
+            res = get();
+        }
+
         camera.update(rl.CameraMode.camera_first_person);
         rl.beginDrawing();
         defer rl.endDrawing();
@@ -49,21 +68,22 @@ pub fn main() void {
 
         {
             camera.begin();
-            defer camera.end(); 
+            defer camera.end();
             for (&bullets) |*bul| {
-            if (bul.active) {
-                bul.position = rl.Vector3.add(bul.position, rl.Vector3.scale(bul.direction, 4)); // Move forward
-                // Deactivate bullets that go out of range
-                if (rl.Vector3.length(bul.position) > 100.0) {
-                    bul.active = false;
+                if (bul.active) {
+                    bul.position = rl.Vector3.add(bul.position, rl.Vector3.scale(bul.direction, 4)); // Move forward
+                    // Deactivate bullets that go out of range
+                    if (rl.Vector3.length(bul.position) > 100.0) {
+                        bul.active = false;
+                    }
                 }
             }
-        }
             for (&bullets) |bul| {
                 if (bul.active) {
-                    rl.drawCylinder(bul.position, 0.1, 0.1,0.1, 100, rl.Color.gold) ;// Draw the bullet
+                    rl.drawCylinder(bul.position, 0.1, 0.1, 0.1, 100, rl.Color.gold); // Draw the bullet
                 }
             }
+            rl.drawCube(rl.Vector3.init(res[0], 1, res[1]), 1, 1, 1, rl.Color.red);
             if (rl.isKeyPressed(rl.KeyboardKey.key_w)) {
                 rl.playMusicStream(walk);
             }
@@ -72,18 +92,18 @@ pub fn main() void {
             }
             if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {
                 rl.playMusicStream(shoot);
-            var currentBullet = &bullets[bulletIndex];
-            currentBullet.position = camera.position;
-            const forward = rl.Vector3.subtract(camera.target, camera.position);
-            currentBullet.direction = rl.Vector3.normalize(forward);
-            currentBullet.active = true;
-            bulletIndex = (bulletIndex + 1) % 50; // Cycle through the bullet array
-        }
+                var currentBullet = &bullets[bulletIndex];
+                currentBullet.position = camera.position;
+                const forward = rl.Vector3.subtract(camera.target, camera.position);
+                currentBullet.direction = rl.Vector3.normalize(forward);
+                currentBullet.active = true;
+                bulletIndex = (bulletIndex + 1) % 50; // Cycle through the bullet array
+            }
             if (rl.isMouseButtonDown(rl.MouseButton.mouse_button_left)) {
                 rl.updateMusicStream(shoot);
             }
             rl.updateMusicStream(normal);
-            
+
             if (rl.isMouseButtonPressed(rl.MouseButton.mouse_button_left)) {}
             rl.drawModel(
                 building,
@@ -116,9 +136,42 @@ pub fn main() void {
         rl.drawRectangleRounded(rl.Rectangle.init(screenWidth / 2 + 10, screenHeight / 2, 25, 2), 50, 1, rl.Color.light_gray);
         rl.drawRectangleRounded(rl.Rectangle.init(screenWidth / 2, screenHeight / 2 + 10, 2, 25), 50, 1, rl.Color.light_gray);
         rl.drawRectangleRounded(rl.Rectangle.init(screenWidth / 2, screenHeight / 2 - 35, 2, 25), 50, 1, rl.Color.light_gray);
-        var buf: [20]u8 = undefined;
-        rl.drawText(std.fmt.bufPrintZ(&buf, "x : {d}", .{camera.position.x}) catch @panic("message: []const u8"), 20, 20, 20, rl.Color.red);
-        rl.drawText(std.fmt.bufPrintZ(&buf, "y : {d}", .{camera.position.y}) catch @panic("message: []const u8"), 20, 40, 20, rl.Color.red);
-        rl.drawText(std.fmt.bufPrintZ(&buf, "z : {d}", .{camera.position.z}) catch @panic("message: []const u8"), 20, 60, 20, rl.Color.red);
+
+        //  var buf: [20]u8 = undefined;
+        //  rl.drawText(std.fmt.bufPrintZ(&buf, "x : {d}", .{camera.position.x}) catch @panic("message: []const u8"), 20, 20, 20, rl.Color.red);
+        //  rl.drawText(std.fmt.bufPrintZ(&buf, "y : {d}", .{camera.position.y}) catch @panic("message: []const u8"), 20, 40, 20, rl.Color.red);
+        //  rl.drawText(std.fmt.bufPrintZ(&buf, "z : {d}", .{camera.position.z}) catch @panic("message: []const u8"), 20, 60, 20, rl.Color.red);
     }
+}
+
+pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
+    var charBuffer = std.ArrayList(u8).init(allocator);
+    errdefer charBuffer.deinit();
+    var client = std.http.Client{ .allocator = allocator };
+    defer client.deinit();
+    const fetchOptions = std.http.Client.FetchOptions{
+        .location = std.http.Client.FetchOptions.Location{
+            .url = url,
+        },
+        .method = .GET,
+        .response_storage = .{ .dynamic = &charBuffer },
+    };
+    _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
+    return charBuffer.toOwnedSlice() catch @panic("Can't convert buffer to string");
+}
+
+inline fn set(x: [2]f32) !void {
+    var buf: [500]u8 = undefined;
+    const resultant = try std.fmt.bufPrintZ(&buf, URL ++ "set/" ++ user_name ++ "/?{d}:{d}", .{ x[0], x[1] });
+    // std.debug.print("{s}", .{resultant});
+    _ = fetchNormal(allocator_c, resultant); // send location
+    return;
+}
+
+inline fn get() [2]f32 {
+    const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // get location
+    var iter = std.mem.splitScalar(u8, result, ':');
+    const user_location_x: f32 = std.fmt.parseFloat(f32, iter.next().?) catch return [2]f32{ 0, 0 };
+    const user_location_z: f32 = std.fmt.parseFloat(f32, iter.next().?) catch return [2]f32{ 0, 0 };
+    return [2]f32{ user_location_x, user_location_z };
 }
