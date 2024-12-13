@@ -7,8 +7,8 @@ const MAX_COLUMNS = 20;
 
 const URL = "https://game-backend-vr99.onrender.com/";
 
-const user_name = "paras";
-const user_name2 = "rohan";
+const user_name = "rohan";
+const user_name2 = "paras";
 
 // This is an easy algorith I thought about to check if player is not hitting a wall/building.
 inline fn check_boundaries(x1: f32, x2: f32, z1: f32, z2: f32, player_pos_x: f32, player_pos_z: f32) bool {
@@ -18,7 +18,7 @@ inline fn check_boundaries(x1: f32, x2: f32, z1: f32, z2: f32, player_pos_x: f32
 const Bullet = struct {
     position: rl.Vector3,
     direction: rl.Vector3,
-    active: bool,
+    active: bool = false,
 };
 
 var user2_location = [2]f32{ 0, 0 };
@@ -27,6 +27,7 @@ var user_location = [2]f32{ 0, 0 };
 pub fn main() !void {
     std.debug.print("OK", .{});
     var bullets: [50]Bullet = undefined;
+    // var bullets_index: u16 = 0;
     var bulletIndex: usize = 0;
     const screenWidth = 720;
     const screenHeight = 420;
@@ -53,8 +54,8 @@ pub fn main() !void {
     const shoot = rl.loadMusicStream("./assets/shoot.mp3");
     rl.playMusicStream(normal);
 
-    const t1 = try std.Thread.spawn(.{}, set, .{});
-    const t2 = try std.Thread.spawn(.{}, get, .{});
+    // const t1 = try std.Thread.spawn(.{}, set, .{});
+    // const t2 = try std.Thread.spawn(.{}, get, .{});
 
     while (!rl.windowShouldClose()) {
         user_location = [2]f32{ camera.position.x, camera.position.z };
@@ -140,59 +141,59 @@ pub fn main() !void {
         //  rl.drawText(std.fmt.bufPrintZ(&buf, "y : {d}", .{camera.position.y}) catch @panic("message: []const u8"), 20, 40, 20, rl.Color.red);
         //  rl.drawText(std.fmt.bufPrintZ(&buf, "z : {d}", .{camera.position.z}) catch @panic("message: []const u8"), 20, 60, 20, rl.Color.red);
     }
-    t1.join();
-    t2.join();
+    // t1.join();
+    // t2.join();
 }
 
-pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
-    // Use ArrayListAlignedUnmanaged for response storage
-    var charBuffer = std.ArrayListAlignedUnmanaged(u8, null).initCapacity(allocator, 1024) catch @panic("Management issue.");
-    defer charBuffer.deinit(allocator_c);
+// pub fn fetchNormal(allocator: std.mem.Allocator, url: []const u8) []const u8 {
+//     // Use ArrayListAlignedUnmanaged for response storage
+//     var charBuffer = std.ArrayListAlignedUnmanaged(u8, null).initCapacity(allocator, 1024) catch @panic("Management issue.");
+//     defer charBuffer.deinit(allocator_c);
 
-    var client = std.http.Client{ .allocator = allocator };
-    defer client.deinit();
+//     var client = std.http.Client{ .allocator = allocator };
+//     defer client.deinit();
 
-    const fetchOptions = std.http.Client.FetchOptions{
-        .location = .{ .url = url },
-        .method = .GET,
-        .response_storage = .{ .static = &charBuffer },
-    };
+//     const fetchOptions = std.http.Client.FetchOptions{
+//         .location = .{ .url = url },
+//         .method = .GET,
+//         .response_storage = .{ .static = &charBuffer },
+//     };
 
-    _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
-    return charBuffer.toOwnedSlice(allocator) catch @panic("Can't convert buffer to string");
-}
+//     _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
+//     return charBuffer.toOwnedSlice(allocator) catch @panic("Can't convert buffer to string");
+// }
 
-pub fn fetchNormal2(allocator: std.mem.Allocator, url: []const u8) void {
-    var client = std.http.Client{ .allocator = allocator };
-    defer client.deinit();
+// pub fn fetchNormal2(allocator: std.mem.Allocator, url: []const u8) void {
+//     var client = std.http.Client{ .allocator = allocator };
+//     defer client.deinit();
 
-    const fetchOptions = std.http.Client.FetchOptions{
-        .location = .{ .url = url },
-        .method = .GET,
-    };
+//     const fetchOptions = std.http.Client.FetchOptions{
+//         .location = .{ .url = url },
+//         .method = .GET,
+//     };
 
-    _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
-}
+//     _ = client.fetch(fetchOptions) catch @panic("Internet issue.");
+// }
 
-fn set() !void {
-    const fixed_buf_size = 500;
-    var buf: [fixed_buf_size]u8 = undefined;
+// fn set() !void {
+//     const fixed_buf_size = 500;
+//     var buf: [fixed_buf_size]u8 = undefined;
 
-    while (true) {
-        const resultant = try std.fmt.bufPrintZ(&buf, URL ++ "set/" ++ user_name ++ "/?{d}:{d}", .{ user_location[0], user_location[1] });
-        fetchNormal2(allocator_c, resultant); // Send location
-    }
-}
+//     while (true) {
+//         const resultant = try std.fmt.bufPrintZ(&buf, URL ++ "set/" ++ user_name ++ "/?{d}:{d}", .{ user_location[0], user_location[1] });
+//         fetchNormal2(allocator_c, resultant); // Send location
+//     }
+// }
 
-fn get() void {
-    while (true) {
-        const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // Get location
-        var iter = std.mem.splitScalar(u8, result, ':');
+// fn get() void {
+//     while (true) {
+//         const result = fetchNormal(allocator_c, URL ++ "get/" ++ user_name2 ++ "/"); // Get location
+//         var iter = std.mem.splitScalar(u8, result, ':');
 
-        // Parse locations directly
-        user2_location = [2]f32{
-            std.fmt.parseFloat(f32, iter.next().?) catch 0,
-            std.fmt.parseFloat(f32, iter.next().?) catch 0,
-        };
-    }
-}
+//         // Parse locations directly
+//         user2_location = [2]f32{
+//             std.fmt.parseFloat(f32, iter.next().?) catch 0,
+//             std.fmt.parseFloat(f32, iter.next().?) catch 0,
+//         };
+//     }
+// }
